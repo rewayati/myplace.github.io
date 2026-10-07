@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>إدارة العمارة</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6f6a">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--ink:#2b2a28;--mut:#7a766d;--line:#e4dfd3;--brand:#2f6f6a;--ok:#4c9a6a;--late:#d0594a;--wait:#e0a84a;--empty:#c9c5ba;--wall:#e9d9bd;--wallb:#cdb98f;--win:#cfe6ee;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1d1f;--card:#27292c;--ink:#ece9e1;--mut:#a09c92;--line:#3a3d41;--brand:#5fb3ab;--wall:#3b372e;--wallb:#59513f;--win:#2e4650}}
+:root[data-theme="dark"]{--bg:#1c1d1f;--card:#27292c;--ink:#ece9e1;--mut:#a09c92;--line:#3a3d41;--brand:#5fb3ab;--wall:#3b372e;--wallb:#59513f;--win:#2e4650}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Cairo,Tahoma,sans-serif;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:12px;padding:2px 10px;border-radius:99px;background:var(--line);color:var(--mut)}
+input,button,textarea{font-family:inherit;font-size:15px}
+input,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+button{cursor:pointer;border:0;border-radius:10px;padding:8px 14px;background:var(--brand);color:#fff;font-weight:600}
+button.g{background:var(--line);color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.stat b{display:block;font-size:17px}.stat span{font-size:12px;color:var(--mut)}
+.month{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 0}
+.month span{font-weight:700;min-width:120px;text-align:center}
+.bld{margin:14px auto;max-width:520px}
+.roof{height:34px;background:var(--brand);clip-path:polygon(8% 100%,50% 0,92% 100%);margin:0 auto -1px;width:80%}
+.floor{display:flex;align-items:center;gap:8px;background:var(--wall);border:2px solid var(--wallb);border-top-width:0;padding:8px 10px}
+.floor:first-of-type{border-top-width:2px}
+.fl{width:56px;font-size:12px;color:var(--mut);font-weight:600;flex:none}
+.apts{display:flex;gap:8px;flex:1}
+.apt{flex:1;min-height:54px;border-radius:10px 10px 4px 4px;background:var(--win);border:2px solid var(--wallb);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;font-size:13px;position:relative}
+.apt small{font-weight:400;color:var(--mut);font-size:11px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apt::after{content:"";position:absolute;top:5px;inset-inline-start:5px;width:10px;height:10px;border-radius:50%;background:var(--empty)}
+.apt.ok::after{background:var(--ok)}.apt.late::after{background:var(--late)}.apt.wait::after{background:var(--wait)}
+.door{height:14px;background:var(--wallb);border-radius:0 0 8px 8px;margin:0 auto;width:30%;max-width:120px}
+.legend{display:flex;gap:12px;justify-content:center;font-size:12px;color:var(--mut);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:4px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:14px}
+.panel h2{font-size:16px;margin:0 0 8px}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0}
+.row .n{flex:1}
+.x{background:transparent;color:var(--late);padding:2px 8px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:9}
+.modal.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:520px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+@media (min-width:600px){.modal{align-items:center}.sheet{border-radius:18px}}
+label{display:block;font-size:13px;color:var(--mut);margin:8px 0 2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sum{background:var(--bg);border-radius:12px;padding:10px;margin-top:10px;font-size:14px}
+.sum div{display:flex;justify-content:space-between}
+.tot{font-weight:700;border-top:1px dashed var(--line);margin-top:4px;padding-top:4px}
+.pay{margin-top:10px;width:100%}
+.note{font-size:12px;color:var(--mut);margin-top:8px}
+.login{max-width:380px;margin:12vh auto;padding:20px;background:var(--card);border:1px solid var(--line);border-radius:18px;text-align:center}
+.login .row{flex-direction:column;align-items:stretch}
+.err{color:var(--late);font-size:13px;min-height:20px}
+.wa{display:flex;gap:8px;align-items:center;margin:6px 0;padding:8px;background:var(--bg);border-radius:10px}
+.wa .n{flex:1;font-size:14px}.wa small{display:block;color:var(--mut);direction:ltr;text-align:right}
+a.wab{background:#25a55a;color:#fff;text-decoration:none;padding:6px 12px;border-radius:10px;font-weight:600;font-size:14px}
+a.wab.off{background:var(--empty);pointer-events:none}
+</style>
+</head>
+<body>
+<div class="login" id="login" style="display:none">
+  <h1>🏢 إدارة العمارة</h1><p class="note">سجّل دخولك (المسؤول أو صاحب العقار)</p>
+  <div class="row"><input id="lE" type="email" placeholder="الإيميل" dir="ltr"><input id="lP" type="password" placeholder="كلمة المرور (6 حروف على الأقل)" dir="ltr">
+  <button id="lIn">دخول</button><button class="g" id="lUp">إنشاء حساب جديد</button></div>
+  <div class="err" id="lErr"></div>
+</div>
+<div class="wrap" id="main" style="display:none">
+  <div class="top"><h1>🏢 إدارة العمارة</h1><span><span class="badge" id="role"></span> <button class="g" id="out" style="padding:2px 10px">خروج</button></span></div>
+  <div class="month"><button class="g" id="prev">›</button><span id="mlabel"></span><button class="g" id="next">‹</button></div>
+  <div class="stats">
+    <div class="stat"><b id="sExp">0</b><span>المطلوب</span></div>
+    <div class="stat"><b id="sGot">0</b><span>تم تحصيله</span></div>
+    <div class="stat"><b id="sLeft">0</b><span>المتبقي</span></div>
+  </div>
+  <div class="bld" id="bld"></div>
+  <div class="legend"><span><i style="background:var(--ok)"></i>مدفوع</span><span><i style="background:var(--wait)"></i>لسه ميعاده</span><span><i style="background:var(--late)"></i>متأخر</span><span><i style="background:var(--empty)"></i>فاضية</span></div>
+  <div class="panel">
+    <h2>مصاريف الشهر المشتركة (تتقسم بالتساوي على الشقق)</h2>
+    <div id="items"></div>
+    <div class="row"><input id="iL" placeholder="البند (فاتورة مياه، صيانة ماتور…)"><input id="iA" type="number" inputmode="decimal" placeholder="المبلغ" style="max-width:110px"><button id="iAdd">إضافة</button></div>
+    <div class="note" id="shareNote"></div>
+  </div>
+  <div class="panel" id="mgr" style="display:none">
+    <h2>حساب صاحب العقار</h2>
+    <div class="row"><input id="mE" type="email" dir="ltr" placeholder="إيميل صاحب العقار"><button id="mS">حفظ</button></div>
+    <div class="note">صاحب العقار يعمل حساب جديد بنفس الإيميل ده وبعدها يدخل، وليه نفس صلاحياتك بالظبط (يشوف ويعدّل ويسجل العقود).</div>
+  </div>
+</div>
+
+<div class="modal" id="smodal"><div class="sheet" id="ssheet"></div></div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,collection,setDoc,getDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ====== الصق إعدادات Firebase بتاعتك هنا (firebaseConfig) ======
+const firebaseConfig={apiKey:"PASTE",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""};
+// ================================================================
+let fdb=null,auth=null;
+const FL=[['الأرضي',1],['الأول',1],['الثاني',1],['الثالث',2],['الرابع',2],['الخامس',2],['السادس',2],['السابع',2]];
+const IDS=[];FL.forEach((f,i)=>{for(let k=0;k<f[1];k++)IDS.push('f'+i+'_'+k)});
+const N=IDS.length;
+let units={},months={},canWrite=true,cur=ym(new Date()),open=null;
+const $=id=>document.getElementById(id);
+function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmt(n){return Math.round(n).toLocaleString('ar-EG')}
+function monthName(m){const [y,mm]=m.split('-');return new Date(y,mm-1,1).toLocaleDateString('ar-EG',{month:'long',year:'numeric'})}
+function shift(m,d){const [y,mm]=m.split('-').map(Number);return ym(new Date(y,mm-1+d,1))}
+function share(){const it=(months[cur]&&months[cur].items)||[];return it.reduce((s,x)=>s+(+x.amount||0),0)/N}
+function dueDate(u,m){const [y,mm]=m.split('-').map(Number);const last=new Date(y,mm,0).getDate();return new Date(y,mm-1,Math.min(+u.dueDay||1,last),23,59,59)}
+function status(id){
+  const u=units[id];if(!u||!(+u.rent>0))return 'empty';
+  if(u.paid&&u.paid[cur])return 'ok';
+  return new Date()>dueDate(u,cur)?'late':'wait';
+}
+function total(id){const u=units[id];return u&&+u.rent>0?(+u.rent+share()):0}
+function flName(i,k){return FL[i][1]===2?(k===0?'يمين':'شمال'):'شقة'}
+
+function render(){
+  $('mlabel').textContent=monthName(cur);
+  let h='<div class="roof"></div>';
+  for(let i=FL.length-1;i>=0;i--){
+    h+='<div class="floor"><div class="fl">'+FL[i][0]+'</div><div class="apts">';
+    for(let k=0;k<FL[i][1];k++){
+      const id='f'+i+'_'+k,u=units[id],st=status(id);
+      h+='<button class="apt '+st+'" data-id="'+id+'" style="background:var(--win)">🪟 '+flName(i,k)+'<small>'+esc(u&&u.name||'فاضية')+'</small></button>';
+    }
+    h+='</div></div>';
+  }
+  h+='<div class="door"></div>';
+  $('bld').innerHTML=h;
+  let exp=0,got=0;
+  IDS.forEach(id=>{const t=total(id);exp+=t;if(status(id)==='ok')got+=t});
+  $('sExp').textContent=fmt(exp);$('sGot').textContent=fmt(got);$('sLeft').textContent=fmt(exp-got);
+  const it=(months[cur]&&months[cur].items)||[];
+  $('items').innerHTML=it.length?it.map((x,j)=>'<div class="row"><span class="n">'+esc(x.label)+'</span><b>'+fmt(x.amount)+'</b><button class="g" data-send="'+j+'" style="padding:2px 10px">📲 واتساب</button>'+(canWrite?'<button class="x" data-del="'+j+'">✕</button>':'')+'</div>').join(''):'<div class="note">مفيش مصاريف الشهر ده لسه.</div>';
+  $('shareNote').textContent=it.length?'نصيب كل شقة: '+fmt(share())+' ج (الإجمالي ÷ '+N+' شقة)':'';
+  document.querySelectorAll('.add,#iL,#iA,#iAdd').forEach(e=>e.disabled=!canWrite);
+  if(open)renderSheet(open);
+}
+function renderSheet(id){
+  const [fi,k]=id.slice(1).split('_').map(Number);
+  const u=units[id]||{},st=status(id),sh=share(),rent=+u.rent||0,dis=canWrite?'':' disabled';
+  $('sheet').innerHTML='<div class="top"><h1>'+FL[fi][0]+' — '+flName(fi,k)+'</h1><button class="g" id="close">إغلاق</button></div>'+
+  '<label>اسم المستأجر</label><input id="fN" value="'+esc(u.name)+'"'+dis+'>'+
+  '<label>رقم التليفون</label><input id="fP" inputmode="tel" value="'+esc(u.phone)+'"'+dis+'>'+
+  '<div class="g2"><div><label>بداية الإيجار</label><input id="fS" type="date" value="'+esc(u.start)+'"'+dis+'></div>'+
+  '<div><label>يوم المطالبة في الشهر</label><input id="fD" type="number" min="1" max="31" value="'+esc(u.dueDay||1)+'"'+dis+'></div></div>'+
+  '<label>قيمة الإيجار الشهري</label><input id="fR" type="number" inputmode="decimal" value="'+esc(u.rent)+'"'+dis+'>'+
+  '<label>ملاحظات</label><textarea id="fT" rows="2"'+dis+'>'+esc(u.notes)+'</textarea>'+
+  (canWrite?'<button class="pay" id="save">حفظ البيانات</button>':'')+
+  '<div class="sum"><div><span>إيجار '+monthName(cur)+'</span><b>'+fmt(rent)+'</b></div>'+
+  '<div><span>نصيبها من المصاريف المشتركة</span><b>'+fmt(rent>0?sh:0)+'</b></div>'+
+  '<div class="tot"><span>الإجمالي المطلوب</span><b>'+fmt(total(id))+' ج</b></div></div>'+
+  (rent>0?'<div class="note">ميعاد المطالبة: '+dueDate(u,cur).toLocaleDateString('ar-EG',{day:'numeric',month:'long'})+' — الحالة: '+({ok:'مدفوع ✅',late:'متأخر ⚠️',wait:'لسه ميعاده'}[st])+'</div>':'')+
+  (canWrite&&rent>0?'<button class="pay" id="paid" style="background:'+(st==='ok'?'var(--late)':'var(--ok)')+'">'+(st==='ok'?'إلغاء التحصيل':'تم التحصيل ✔')+'</button>':'');
+}
+function waNum(p){let d=String(p||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);else if(d.startsWith('0'))d='20'+d.slice(1);return d.length>=9?d:''}
+function waMsg(name,x){
+  const sh=Math.round(+x.amount/N*100)/100,tot=Math.round(+x.amount*100)/100;
+  const [y,mm]=cur.split('-').map(Number),dt=new Date(y,mm-1,1);
+  const ma=dt.toLocaleDateString('ar-EG',{month:'long',year:'numeric'}),me=dt.toLocaleDateString('en-US',{month:'long',year:'numeric'}),mf=dt.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const n=name||'';
+  return 'السلام عليكم '+n+'\nتم تسجيل «'+x.label+'» عن شهر '+ma+'.\nالإجمالي: '+tot+' جنيه، ونصيب شقتكم: '+sh+' جنيه.\nشكراً لتعاونكم.\n\n'+
+  'Hello '+n+',\n"'+x.label+'" for '+me+' has been recorded.\nTotal: '+tot+' EGP, your apartment\'s share: '+sh+' EGP.\nThank you.\n\n'+
+  'Bonjour '+n+',\n« '+x.label+' » pour '+mf+' a été enregistré.\nTotal : '+tot+' EGP, part de votre appartement : '+sh+' EGP.\nMerci.';
+}
+function openSend(j){
+  const x=((months[cur]||{}).items||[])[j];if(!x)return;
+  let h='<div class="top"><h1>📲 إرسال واتساب</h1><button class="g" id="sclose">إغلاق</button></div><div class="note">«'+esc(x.label)+'» — الرسالة بالعربي والإنجليزي والفرنسي. اضغط إرسال لكل مستأجر وهيفتح واتساب والرسالة جاهزة.</div>';
+  let c=0;
+  IDS.forEach(id=>{const u=units[id];if(!u||!(+u.rent>0))return;c++;
+    const [fi,k]=id.slice(1).split('_').map(Number),num=waNum(u.phone);
+    const link=num?'https://wa.me/'+num+'?text='+encodeURIComponent(waMsg(u.name,x)):'';
+    h+='<div class="wa"><div class="n">'+FL[fi][0]+' — '+flName(fi,k)+' · '+esc(u.name||'بدون اسم')+'<small>'+(num?'+'+num:'مفيش رقم تليفون')+'</small></div>'+
+    '<a class="wab'+(num?'':' off')+'" '+(num?'href="'+link+'" target="_blank" rel="noopener"':'')+'>إرسال</a></div>';});
+  if(!c)h+='<div class="note">مفيش شقق متسجلة لسه. سجّل بيانات المستأجرين الأول.</div>';
+  $('ssheet').innerHTML=h;$('smodal').classList.add('on');
+}
+function saveUnit(id,data){
+  units[id]=data;render();
+  if(fdb)setDoc(doc(fdb,'units',id),data).catch(()=>{});
+}
+function saveMonth(items){
+  months[cur]={items};render();
+  if(fdb)setDoc(doc(fdb,'months',cur),{items}).catch(()=>{});
+}
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const a=t.closest('.apt');if(a){open=a.dataset.id;$('modal').classList.add('on');renderSheet(open);return}
+  if(t.id==='smodal'||t.id==='sclose'){$('smodal').classList.remove('on');return}
+  if(t.dataset&&t.dataset.send!==undefined){openSend(+t.dataset.send);return}
+  if(t.id==='modal'||t.id==='close'){open=null;$('modal').classList.remove('on');return}
+  if(t.id==='save'){
+    const old=units[open]||{};
+    saveUnit(open,{...old,name:$('fN').value.trim(),phone:$('fP').value.trim(),start:$('fS').value,dueDay:+$('fD').value||1,rent:+$('fR').value||0,notes:$('fT').value.trim(),paid:old.paid||{}});return}
+  if(t.id==='paid'){
+    const old=units[open]||{},p={...(old.paid||{})};
+    if(p[cur])delete p[cur];else p[cur]=true;
+    saveUnit(open,{...old,paid:p});return}
+  if(t.id==='prev'){cur=shift(cur,-1);render();return}
+  if(t.id==='next'){cur=shift(cur,1);render();return}
+  if(t.id==='iAdd'){
+    const l=$('iL').value.trim(),m=+$('iA').value;
+    if(!l||!(m>0))return;
+    saveMonth([...(((months[cur]||{}).items)||[]),{label:l,amount:m}]);
+    $('iL').value='';$('iA').value='';openSend(months[cur].items.length-1);return}
+  if(t.dataset&&t.dataset.del!==undefined){
+    const it=[...(months[cur].items||[])];it.splice(+t.dataset.del,1);saveMonth(it)}
+});
+render();
+void 0;
+
+const show=(id,on)=>{$(id).style.display=on?'':'none'};
+const MSG={'auth/invalid-credential':'الإيميل أو كلمة المرور غلط','auth/email-already-in-use':'الإيميل ده مسجل قبل كده، اضغط دخول','auth/weak-password':'كلمة المرور ضعيفة (6 حروف على الأقل)','auth/invalid-email':'الإيميل مش مكتوب صح','auth/network-request-failed':'مفيش اتصال بالإنترنت'};
+let unsubs=[];
+if(firebaseConfig.apiKey==="PASTE"){show('login',true);$('lErr').textContent='لازم تلصق إعدادات Firebase في أول الملف.'}
+else{
+  const app=initializeApp(firebaseConfig);auth=getAuth(app);fdb=getFirestore(app);
+  const go=async(f)=>{$('lErr').textContent='';try{await f(auth,$('lE').value.trim(),$('lP').value)}catch(e){$('lErr').textContent=MSG[e.code]||'حصلت مشكلة، جرّب تاني'}};
+  $('lIn').onclick=()=>go(signInWithEmailAndPassword);
+  $('lUp').onclick=()=>go(createUserWithEmailAndPassword);
+  $('out').onclick=()=>signOut(auth);
+  onAuthStateChanged(auth,async u=>{
+    unsubs.forEach(f=>f());unsubs=[];units={};months={};
+    if(!u){show('main',false);show('login',true);return}
+    show('login',false);
+    try{
+      const ref=doc(fdb,'meta','main');let ms=await getDoc(ref),meta,owner=false,ok=false;
+      if(!ms.exists()){meta={ownerUid:u.uid,ownerEmail:u.email,managerEmail:''};await setDoc(ref,meta);owner=ok=true}
+      else{meta=ms.data();owner=meta.ownerUid===u.uid;ok=owner||(!!meta.managerEmail&&meta.managerEmail===(u.email||'').toLowerCase())}
+      if(!ok){signOut(auth);show('login',true);$('lErr').textContent='الحساب ده مش مصرّح له. اطلب من المسؤول يضيف إيميلك.';return}
+      $('role').textContent=owner?'المسؤول':'صاحب العقار';
+      show('mgr',owner);$('mE').value=meta.managerEmail||'';
+      $('mS').onclick=()=>setDoc(ref,{managerEmail:$('mE').value.trim().toLowerCase()},{merge:true}).then(()=>{$('mS').textContent='تم ✔';setTimeout(()=>$('mS').textContent='حفظ',1500)});
+      show('main',true);
+      unsubs.push(onSnapshot(collection(fdb,'units'),sn=>{const o={};sn.docs.forEach(d=>o[d.id]=d.data());units=o;render()}));
+      unsubs.push(onSnapshot(collection(fdb,'months'),sn=>{const o={};sn.docs.forEach(d=>o[d.id]=d.data());months=o;render()}));
+      render();
+    }catch(e){show('login',true);$('lErr').textContent='تعذّر تحميل البيانات. راجع قواعد Firestore.'}
+  });
+}
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function metaPath() { return /databases/$(database)/documents/meta/main; }
+    function member() {
+      return request.auth != null && exists(metaPath()) &&
+        (get(metaPath()).data.ownerUid == request.auth.uid ||
+         get(metaPath()).data.managerEmail == request.auth.token.email);
+    }
+    match /meta/main {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && !exists(metaPath())
+                    && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+    match /units/{id}  { allow read, write: if member(); }
+    match /months/{id} { allow read, write: if member(); }
+  }
+}
