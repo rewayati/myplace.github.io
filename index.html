@@ -170,7 +170,7 @@ function renderSheet(id){
   const [fi,k]=id.slice(1).split('_').map(Number);
   const u=units[id]||{},st=status(id),sh=share(),rent=+u.rent||0,dis=canWrite?'':' disabled';
   $('sheet').innerHTML='<div class="top"><h1>'+FL[fi][0]+' — '+flName(fi,k)+'</h1><button class="g" id="close">إغلاق</button></div>'+
-  '<div class="note" style="margin-bottom:12px">'+(FL[fi][1]===2?(k===0?'يمين السلم • 3 غرف':'شمال السلم • 4 غرف'):'يمين السلم • 3 غرف')+'</div>'+'<label>اسم المستأجر</label>'<input id="fN" value="'+esc(u.name)+'"'+dis+'>'+
+  '<div class="note" style="margin-bottom:12px">'+(FL[fi][1]===2?(k===0?'يمين السلم • 3 غرف':'شمال السلم • 4 غرف'):'يمين السلم • 3 غرف')+'</div>'+'<label>اسم المستأجر</label><input id="fN" value="'+esc(u.name)+'"'+dis+'>'+
   '<label>رقم التليفون</label><input id="fP" inputmode="tel" value="'+esc(u.phone)+'"'+dis+'>'+
   '<div class="g2"><div><label>بداية الإيجار</label><input id="fS" type="date" value="'+esc(u.start)+'"'+dis+'></div>'+
   '<div><label>يوم المطالبة في الشهر</label><input id="fD" type="number" min="1" max="31" value="'+esc(u.dueDay||1)+'"'+dis+'></div></div>'+
