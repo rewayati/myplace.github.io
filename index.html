@@ -102,6 +102,12 @@ background:radial-gradient(circle at 40% 58%,#e8c872 0 3px,transparent 4px),radi
 .entry:before{content:"";position:absolute;top:-9px;left:-9px;right:-9px;height:8px;background:#33423f;border-radius:4px}
 .plinth{height:18px;background:linear-gradient(180deg,#a69367,#76673f);margin:0 -12px;border-radius:0 0 8px 8px}
 @media(max-width:480px){.cells{grid-template-columns:1fr 26px 1fr;gap:5px;padding:9px 5px}.fr{grid-template-columns:40px 1fr}.apt{min-height:90px;padding:8px 3px 19px}.an{font-size:12px}.nm{font-size:10px}.crown{gap:20px}.stats{gap:7px}.stat b{font-size:16px}}
+.rt{width:100%;border-collapse:collapse;font-size:12px}.rt th,.rt td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:right;white-space:nowrap}.rt th{background:var(--bg)}
+select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px}
+.wa select{width:auto;padding:5px 6px;font-size:12px}
+#bn:not(:empty){background:var(--late);color:#fff;border-radius:99px;padding:0 6px;margin-inline-start:4px;font-size:11px}
+button.pay.g{background:var(--line);color:var(--ink)}
+@media print{body>*:not(#smodal){display:none!important}#smodal{position:static!important;display:block!important;background:none!important;backdrop-filter:none}.sheet{max-height:none!important;box-shadow:none!important;border-radius:0!important;max-width:none!important;overflow:visible!important}.noprint{display:none!important}}
 </style>
 </head>
 <body>
@@ -112,8 +118,9 @@ background:radial-gradient(circle at 40% 58%,#e8c872 0 3px,transparent 4px),radi
   <div class="err" id="lErr"></div>
 </div>
 <div class="wrap" id="main" style="display:none">
-  <div class="top"><h1>🏢 إدارة العمارة</h1><span><span class="badge" id="role"></span> <button class="g" id="out" style="padding:2px 10px">خروج</button></span></div>
+  <div class="top"><h1>🏢 إدارة العمارة</h1><span><span class="badge" id="role"></span> <button class="g" id="bell" style="padding:2px 10px">🔔<span id="bn"></span></button> <button class="g" id="out" style="padding:2px 10px">خروج</button></span></div>
   <div class="month"><button class="g" id="prev">›</button><span id="mlabel"></span><button class="g" id="next">‹</button></div>
+  <div style="text-align:center;margin:6px 0"><button id="rep">📊 التقرير الشهري</button></div>
   <div class="stats">
     <div class="stat"><b id="sExp">0</b><span>المطلوب</span></div>
     <div class="stat"><b id="sGot">0</b><span>تم تحصيله</span></div>
@@ -129,7 +136,9 @@ background:radial-gradient(circle at 40% 58%,#e8c872 0 3px,transparent 4px),radi
   </div>
   <div class="panel" id="mgr" style="display:none">
     <h2>حساب صاحب العقار</h2>
-    <div class="row"><input id="mE" type="email" dir="ltr" placeholder="إيميل صاحب العقار"><button id="mS">حفظ</button></div>
+    <div class="row"><input id="mE" type="email" dir="ltr" placeholder="إيميل صاحب العقار"></div>
+    <div class="row"><input id="mP" type="tel" dir="ltr" placeholder="واتساب صاحب العقار (مثلاً 0100...)"></div>
+    <div class="row"><input id="mP2" type="tel" dir="ltr" placeholder="واتساب المسؤول (رقمك)"><button id="mS">حفظ</button></div>
     <div class="note">صاحب العقار يعمل حساب جديد بنفس الإيميل ده وبعدها يدخل، وليه نفس صلاحياتك بالظبط (يشوف ويعدّل ويسجل العقود).</div>
   </div>
 </div>
@@ -148,7 +157,7 @@ let fdb=null,auth=null;
 const FL=[['الأرضي',[2]],['الأول',[3]],['الثاني',[2]],['الثالث',[3,4]],['الرابع',[3,4]],['الخامس',[3,4]],['السادس',[3,4]],['السابع',[3,4]],['الثامن',[2,2]]];
 const IDS=[];FL.forEach((f,i)=>{for(let k=0;k<f[1].length;k++)IDS.push('f'+i+'_'+k)});
 const N=IDS.length;
-let units={},months={},canWrite=true,cur=ym(new Date()),open=null;
+let units={},months={},canWrite=true,cur=ym(new Date()),open=null,me='mgr',meta={},notifs=[],coll=null;
 const $=id=>document.getElementById(id);
 function ym(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -170,6 +179,7 @@ function aptNo(id){return IDS.indexOf(id)+1}
 
 function render(){
   $('mlabel').textContent=monthName(cur);
+  {const c=unreadCount();$('bn').textContent=c?String(c):''}
   const cell=(id,i,k)=>{const u=units[id],st=status(id);return '<button class="apt '+st+'" data-id="'+id+'"><span class="an">شقة '+AR(aptNo(id))+'</span><span class="nm">'+esc(u&&u.name||'فاضية')+'</span><span class="rm">'+rl(FL[i][1][k])+'</span></button>'};
   let h='<div class="tower"><div class="crown"><i class="tank"></i><i class="tank"></i><i class="tank"></i></div><div class="parapet"><span>إدارة العقار</span></div><div class="cornice"></div><div class="tbody">';
   for(let i=FL.length-1;i>=0;i--){
@@ -194,69 +204,161 @@ function renderSheet(id){
   '<div class="g2"><div><label>بداية الإيجار</label><input id="fS" type="date" value="'+esc(u.start)+'"'+dis+'></div>'+
   '<div><label>يوم المطالبة في الشهر</label><input id="fD" type="number" min="1" max="31" value="'+esc(u.dueDay||1)+'"'+dis+'></div></div>'+
   '<label>قيمة الإيجار الشهري</label><input id="fR" type="number" inputmode="decimal" value="'+esc(u.rent)+'"'+dis+'>'+
+  '<div class="g2"><div><label>مبلغ التأمين المدفوع</label><input id="fDp" type="number" inputmode="decimal" value="'+esc(u.deposit)+'"'+dis+'></div><div><label>لغة رسائل الواتساب</label><select id="fL"'+dis+'>'+['ar','en','fr'].map(l=>'<option value="'+l+'"'+((u.lang||'ar')===l?' selected':'')+'>'+LN[l]+'</option>').join('')+'</select></div></div>'+
+  ((u.history&&u.history.length)?'<div class="note">سكان سابقون: '+u.history.map(h=>esc(h.name)+(h.end?' (حتى '+esc(h.end)+')':'')).join('، ')+'</div>':'')+
   '<label>ملاحظات</label><textarea id="fT" rows="2"'+dis+'>'+esc(u.notes)+'</textarea>'+
   (canWrite?'<button class="pay" id="save">حفظ البيانات</button>':'')+
   '<div class="sum"><div><span>إيجار '+monthName(cur)+'</span><b>'+fmt(rent)+'</b></div>'+
   '<div><span>نصيبها من المصاريف المشتركة</span><b>'+fmt(rent>0?sh:0)+'</b></div>'+
   '<div class="tot"><span>الإجمالي المطلوب</span><b>'+fmt(total(id))+' ج</b></div></div>'+
   (rent>0?'<div class="note">ميعاد المطالبة: '+dueDate(u,cur).toLocaleDateString('ar-EG',{day:'numeric',month:'long'})+' — الحالة: '+({ok:'مدفوع ✅',late:'متأخر ⚠️',wait:'لسه ميعاده'}[st])+'</div>':'')+
-  (canWrite&&rent>0?'<button class="pay" id="paid" style="background:'+(st==='ok'?'var(--late)':'var(--ok)')+'">'+(st==='ok'?'إلغاء التحصيل':'تم التحصيل ✔')+'</button>':'')+
-  (rent>0?(waSummary(id)?'<a class="wab" style="display:block;text-align:center;margin-top:10px;padding:11px" href="'+waSummary(id)+'" target="_blank" rel="noopener">📲 إرسال المطالبة بالواتساب (عربي / English / Français)</a>':'<div class="note">اكتب رقم التليفون واحفظ عشان تقدر تبعت المطالبة بالواتساب.</div>'):'');
+  payBlock(id,st,rent)+(false?'<button class="pay" id="paid" style="background:'+(st==='ok'?'var(--late)':'var(--ok)')+'">'+(st==='ok'?'إلغاء التحصيل':'تم التحصيل ✔')+'</button>':'')+
+  (rent>0?(waSummary(id)?'<a class="wab" style="display:block;text-align:center;margin-top:10px;padding:11px" href="'+waSummary(id)+'" target="_blank" rel="noopener">📲 إرسال المطالبة بالواتساب ('+LN[u.lang||'ar']+')</a>':'<div class="note">اكتب رقم التليفون واحفظ عشان تقدر تبعت المطالبة بالواتساب.</div>'):'');
 }
-function waSummary(id){
+function waSummary(id,lang){
   const u=units[id]||{},rent=+u.rent||0,num=waNum(u.phone);if(!(rent>0)||!num)return '';
+  lang=lang||u.lang||'ar';
   const items=((months[cur]||{}).items)||[],sh=x=>Math.round(+x.amount/N*100)/100;
   const [y,mm]=cur.split('-').map(Number),dt=new Date(y,mm-1,1),d=dueDate(u,cur),nm=u.name||'',tot=Math.round(total(id)*100)/100;
   const ml=lc=>dt.toLocaleDateString(lc,{month:'long',year:'numeric'}),dd=lc=>d.toLocaleDateString(lc,{day:'numeric',month:'long'});
-  const ar='السلام عليكم '+nm+'\nمطالبة شهر '+ml('ar-EG')+':\nالإيجار: '+rent+' جنيه'+items.map(x=>'\n'+x.label+' (نصيب شقتكم): '+sh(x)+' جنيه').join('')+'\nالإجمالي: '+tot+' جنيه\nميعاد السداد: '+dd('ar-EG')+'\nشكراً لتعاونكم.';
-  const en='Hello '+nm+',\nStatement for '+ml('en-US')+':\nRent: '+rent+' EGP'+items.map(x=>'\n'+x.label+' (your share): '+sh(x)+' EGP').join('')+'\nTotal: '+tot+' EGP\nDue date: '+dd('en-US')+'\nThank you.';
-  const fr='Bonjour '+nm+',\nRelevé de '+ml('fr-FR')+' :\nLoyer : '+rent+' EGP'+items.map(x=>'\n'+x.label+' (votre part) : '+sh(x)+' EGP').join('')+'\nTotal : '+tot+' EGP\nÉchéance : '+dd('fr-FR')+'\nMerci.';
-  return 'https://wa.me/'+num+'?text='+encodeURIComponent(ar+'\n\n'+en+'\n\n'+fr);
+  let m;
+  if(lang==='en')m='Hello '+nm+',\nStatement for '+ml('en-US')+':\nRent: '+rent+' EGP'+items.map(x=>'\n'+x.label+' (your share): '+sh(x)+' EGP').join('')+'\nTotal: '+tot+' EGP\nDue date: '+dd('en-US')+'\nThank you.';
+  else if(lang==='fr')m='Bonjour '+nm+',\nRelevé de '+ml('fr-FR')+' :\nLoyer : '+rent+' EGP'+items.map(x=>'\n'+x.label+' (votre part) : '+sh(x)+' EGP').join('')+'\nTotal : '+tot+' EGP\nÉchéance : '+dd('fr-FR')+'\nMerci.';
+  else m='السلام عليكم '+nm+'\nمطالبة شهر '+ml('ar-EG')+':\nالإيجار: '+rent+' جنيه'+items.map(x=>'\n'+x.label+' (نصيب شقتكم): '+sh(x)+' جنيه').join('')+'\nالإجمالي: '+tot+' جنيه\nميعاد السداد: '+dd('ar-EG')+'\nشكراً لتعاونكم.';
+  return 'https://wa.me/'+num+'?text='+encodeURIComponent(m);
 }
 
 function waNum(p){let d=String(p||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);else if(d.startsWith('0'))d='20'+d.slice(1);return d.length>=9?d:''}
-function waMsg(name,x){
-  const sh=Math.round(+x.amount/N*100)/100,tot=Math.round(+x.amount*100)/100;
+const LN={ar:'العربية',en:'English',fr:'Français'};
+const lbl=r=>r==='mgr'?'المسؤول':'صاحب العقار';
+const ST={ok:'مدفوع',late:'متأخر',wait:'لسه ميعاده',empty:'فاضية'};
+function waMsg(name,x,lang){
+  const sh=Math.round(+x.amount/N*100)/100,tot=Math.round(+x.amount*100)/100,n=name||'';
   const [y,mm]=cur.split('-').map(Number),dt=new Date(y,mm-1,1);
-  const ma=dt.toLocaleDateString('ar-EG',{month:'long',year:'numeric'}),me=dt.toLocaleDateString('en-US',{month:'long',year:'numeric'}),mf=dt.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  const n=name||'';
-  return 'السلام عليكم '+n+'\nتم تسجيل «'+x.label+'» عن شهر '+ma+'.\nالإجمالي: '+tot+' جنيه، ونصيب شقتكم: '+sh+' جنيه.\nشكراً لتعاونكم.\n\n'+
-  'Hello '+n+',\n"'+x.label+'" for '+me+' has been recorded.\nTotal: '+tot+' EGP, your apartment\'s share: '+sh+' EGP.\nThank you.\n\n'+
-  'Bonjour '+n+',\n« '+x.label+' » pour '+mf+' a été enregistré.\nTotal : '+tot+' EGP, part de votre appartement : '+sh+' EGP.\nMerci.';
+  const ml=lc=>dt.toLocaleDateString(lc,{month:'long',year:'numeric'});
+  if(lang==='en')return 'Hello '+n+',\n"'+x.label+'" for '+ml('en-US')+' has been recorded.\nTotal: '+tot+' EGP, your apartment\'s share: '+sh+' EGP.\nThank you.';
+  if(lang==='fr')return 'Bonjour '+n+',\n« '+x.label+' » pour '+ml('fr-FR')+' a été enregistré.\nTotal : '+tot+' EGP, part de votre appartement : '+sh+' EGP.\nMerci.';
+  return 'السلام عليكم '+n+'\nتم تسجيل «'+x.label+'» عن شهر '+ml('ar-EG')+'.\nالإجمالي: '+tot+' جنيه، ونصيب شقتكم: '+sh+' جنيه.\nشكراً لتعاونكم.';
 }
+function itemLink(id,j,lang){const u=units[id]||{},x=((months[cur]||{}).items||[])[j],num=waNum(u.phone);return(x&&num)?'https://wa.me/'+num+'?text='+encodeURIComponent(waMsg(u.name,x,lang)):''}
 function openSend(j){
   const x=((months[cur]||{}).items||[])[j];if(!x)return;
-  let h='<div class="top"><h1>📲 إرسال واتساب</h1><button class="g" id="sclose">إغلاق</button></div><div class="note">«'+esc(x.label)+'» — الرسالة بالعربي والإنجليزي والفرنسي. اضغط إرسال لكل مستأجر وهيفتح واتساب والرسالة جاهزة.</div>';
+  let h='<div class="top"><h1>📲 إرسال واتساب</h1><button class="g" id="sclose">إغلاق</button></div><div class="note">«'+esc(x.label)+'» — اختار لغة كل مستأجر (بتتحفظ له)، واضغط إرسال وهيفتح واتساب والرسالة جاهزة.</div>';
   let c=0;
   IDS.forEach(id=>{const u=units[id];if(!u||!(+u.rent>0))return;c++;
-    const [fi,k]=id.slice(1).split('_').map(Number),num=waNum(u.phone);
-    const link=num?'https://wa.me/'+num+'?text='+encodeURIComponent(waMsg(u.name,x)):'';
+    const [fi,k]=id.slice(1).split('_').map(Number),num=waNum(u.phone),lang=u.lang||'ar',link=itemLink(id,j,lang);
     h+='<div class="wa"><div class="n">'+FL[fi][0]+' — '+flName(fi,k)+' · '+esc(u.name||'بدون اسم')+'<small>'+(num?'+'+num:'مفيش رقم تليفون')+'</small></div>'+
-    '<a class="wab'+(num?'':' off')+'" '+(num?'href="'+link+'" target="_blank" rel="noopener"':'')+'>إرسال</a></div>';});
+    '<select class="lg" data-id="'+id+'" data-j="'+j+'">'+['ar','en','fr'].map(l=>'<option value="'+l+'"'+(l===lang?' selected':'')+'>'+LN[l]+'</option>').join('')+'</select>'+
+    '<a class="wab'+(link?'':' off')+'" '+(link?'href="'+link+'" target="_blank" rel="noopener"':'')+'>إرسال</a></div>';});
   if(!c)h+='<div class="note">مفيش شقق متسجلة لسه. سجّل بيانات المستأجرين الأول.</div>';
   $('ssheet').innerHTML=h;$('smodal').classList.add('on');
+}
+function persistMonth(){if(fdb)setDoc(doc(fdb,'months',cur),months[cur]||{}).catch(()=>{})}
+function notify(text){
+  const id=Date.now()+'_'+Math.random().toString(36).slice(2,6),n={at:Date.now(),from:me,text,read:{}};
+  notifs=[{id,...n},...notifs];
+  if(fdb)setDoc(doc(fdb,'notifs',id),n).catch(()=>{});
+}
+function unreadCount(){return notifs.filter(n=>n.from!==me&&!(n.read||{})[me]).length}
+function openNotifs(){
+  let h='<div class="top"><h1>🔔 الإشعارات</h1><button class="g" id="sclose">إغلاق</button></div>';
+  const list=[...notifs].sort((a,b)=>b.at-a.at).slice(0,40);
+  if(!list.length)h+='<div class="note">مفيش إشعارات لسه.</div>';
+  list.forEach(n=>{const un=n.from!==me&&!(n.read||{})[me];
+    h+='<div class="wa" style="align-items:flex-start;'+(un?'border-inline-start:4px solid var(--brand)':'')+'"><div class="n">'+esc(n.text)+'<small style="direction:rtl">'+new Date(n.at).toLocaleString('ar-EG')+' • من '+lbl(n.from)+'</small></div></div>';
+    if(un){n.read={...(n.read||{}),[me]:true};if(fdb)setDoc(doc(fdb,'notifs',n.id),{read:n.read},{merge:true}).catch(()=>{})}
+  });
+  $('ssheet').innerHTML=h;$('smodal').classList.add('on');$('bn').textContent='';
+}
+function confirmPay(id,choice,note){
+  const old=units[id]||{},p={...(old.paid||{}),[cur]:true},sh=share(),amt=total(id),recv=choice==='me'?me:(me==='mgr'?'own':'mgr');
+  const rec={name:old.name||'',rent:+old.rent||0,share:sh,amount:amt,at:Date.now(),by:me,recv,note:note||''};
+  coll=null;
+  months[cur]={...(months[cur]||{}),pay:{...(((months[cur]||{}).pay)||{}),[id]:rec}};
+  persistMonth();
+  notify('سدد '+(old.name||'مستأجر')+' (شقة '+aptNo(id)+') مبلغ '+fmt(amt)+' ج عن '+monthName(cur)+' — استلمه '+lbl(recv)+' • سجّله '+lbl(me));
+  saveUnit(id,{...old,paid:p});
+}
+function cancelPay(id){
+  const old=units[id]||{},p={...(old.paid||{})};delete p[cur];
+  const pay={...(((months[cur]||{}).pay)||{})};delete pay[id];
+  months[cur]={...(months[cur]||{}),pay};persistMonth();
+  notify('تم إلغاء تحصيل شقة '+aptNo(id)+' ('+(old.name||'')+') عن '+monthName(cur)+' • بواسطة '+lbl(me));
+  saveUnit(id,{...old,paid:p});
+}
+function waNotify(id){
+  const rec=((months[cur]||{}).pay||{})[id];if(!rec)return '';
+  const other=me==='mgr'?'own':'mgr',num=waNum(other==='own'?meta.ownerPhone:meta.mgrPhone);if(!num)return '';
+  const m='السلام عليكم،\nتم تسجيل تحصيل مبلغ '+Math.round(rec.amount)+' جنيه من '+(rec.name||'المستأجر')+' (شقة '+aptNo(id)+') عن شهر '+monthName(cur)+'.\nاستلمه: '+lbl(rec.recv)+'.';
+  return 'https://wa.me/'+num+'?text='+encodeURIComponent(m);
+}
+function payBlock(id,st,rent){
+  if(!canWrite||!(rent>0))return '';
+  const rec=((months[cur]||{}).pay||{})[id],other=me==='mgr'?'own':'mgr';
+  if(coll===id)return '<div class="sum"><div class="tot" style="border:0">تسجيل تحصيل '+fmt(total(id))+' ج</div><label>مين استلم المبلغ؟</label><select id="cR"><option value="me">أنا استلمته ('+lbl(me)+')</option><option value="other">اتحوّل مباشرة لـ'+lbl(other)+'</option></select><label>ملاحظة (اختياري)</label><input id="cN" placeholder="نقدي / تحويل بنكي / ..."></div><button class="pay" id="cok" style="background:var(--ok)">تأكيد التحصيل ✔</button><button class="pay g" id="ccancel" style="margin-top:6px">رجوع</button>';
+  if(st==='ok'){
+    const wl=waNotify(id);
+    return (rec?'<div class="sum"><div class="tot" style="border:0">تم التحصيل ✅</div><div><span>استلمه</span><b>'+lbl(rec.recv)+'</b></div><div><span>سجّله</span><b>'+lbl(rec.by)+'</b></div><div><span>بتاريخ</span><b>'+new Date(rec.at).toLocaleDateString('ar-EG')+'</b></div>'+(rec.note?'<div><span>ملاحظة</span><b>'+esc(rec.note)+'</b></div>':'')+'</div>':'')+
+    '<button class="pay" id="paid" style="background:var(--late)">إلغاء التحصيل</button>'+
+    (wl?'<a class="wab" style="display:block;text-align:center;margin-top:8px;padding:10px" href="'+wl+'" target="_blank" rel="noopener">📲 أبلغ '+lbl(other)+' بالواتساب</a>':'');
+  }
+  return '<button class="pay" id="paid" style="background:var(--ok)">تم التحصيل ✔</button>';
+}
+function tenantFor(id,m){
+  const u=units[id]||{},pay=((months[m]||{}).pay||{})[id];if(pay&&pay.name)return pay.name;
+  const a=m+'-01',b=m+'-31';
+  for(const h of (u.history||[]))if((!h.start||h.start<=b)&&(!h.end||h.end>=a))return h.name;
+  return (!u.start||u.start<=b)?(u.name||''):'';
+}
+function reportRows(){
+  return IDS.map(id=>{const u=units[id]||{},[fi,k]=id.slice(1).split('_').map(Number),rent=+u.rent||0,pay=((months[cur]||{}).pay||{})[id];
+    return {apt:aptNo(id),floor:FL[fi][0]+(FL[fi][1].length===2?(k===0?' ي':' ش'):''),tenant:tenantFor(id,cur),rent,share:rent>0?share():0,total:total(id),st:status(id),dep:+u.deposit||0,recv:pay?lbl(pay.recv):'',at:pay?new Date(pay.at).toLocaleDateString('ar-EG'):''}});
+}
+function openReport(){
+  const rows=reportRows(),items=((months[cur]||{}).items)||[];
+  let exp=0,got=0,dep=0;rows.forEach(r=>{exp+=r.total;if(r.st==='ok')got+=r.total;dep+=r.dep});
+  let h='<div class="top noprint"><h1>📊 التقرير الشهري</h1><button class="g" id="sclose">إغلاق</button></div><h2 style="margin:6px 0">تقرير '+monthName(cur)+'</h2>'+
+  '<div class="sum"><div><span>المطلوب</span><b>'+fmt(exp)+' ج</b></div><div><span>تم تحصيله</span><b>'+fmt(got)+' ج</b></div><div><span>المتبقي</span><b>'+fmt(exp-got)+' ج</b></div><div><span>إجمالي التأمينات المدفوعة</span><b>'+fmt(dep)+' ج</b></div></div>'+
+  (items.length?'<div class="note">المصاريف المشتركة: '+items.map(x=>esc(x.label)+' '+fmt(x.amount)).join(' • ')+' (نصيب كل شقة '+fmt(share())+' ج)</div>':'')+
+  '<div style="overflow-x:auto;margin-top:8px"><table class="rt"><tr><th>شقة</th><th>الدور (ي/ش)</th><th>الساكن</th><th>الإيجار</th><th>المصاريف</th><th>الإجمالي</th><th>الحالة</th><th>استلمه</th><th>التأمين</th></tr>'+
+  rows.map(r=>'<tr><td>'+AR(r.apt)+'</td><td>'+r.floor+'</td><td>'+esc(r.tenant||'—')+'</td><td>'+fmt(r.rent)+'</td><td>'+fmt(r.share)+'</td><td>'+fmt(r.total)+'</td><td>'+ST[r.st]+'</td><td>'+(r.recv?r.recv+'<br><small>'+r.at+'</small>':'—')+'</td><td>'+fmt(r.dep)+'</td></tr>').join('')+'</table></div>';
+  const hist=[];IDS.forEach(id=>(units[id]&&units[id].history||[]).forEach(x=>hist.push({apt:aptNo(id),...x})));
+  if(hist.length)h+='<h2 style="margin:14px 0 4px;font-size:15px">السكان السابقون</h2><div style="overflow-x:auto"><table class="rt"><tr><th>شقة</th><th>الاسم</th><th>من</th><th>إلى</th><th>التأمين</th></tr>'+hist.map(x=>'<tr><td>'+AR(x.apt)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.start||'—')+'</td><td>'+esc(x.end||'—')+'</td><td>'+fmt(+x.deposit||0)+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="row noprint" style="margin-top:12px"><button id="rprint">🖨 طباعة / PDF</button><button class="g" id="rcsv">⬇ Excel (CSV)</button></div>';
+  $('ssheet').innerHTML=h;$('smodal').classList.add('on');
+}
+function csvDown(){
+  const rows=reportRows(),H=['شقة','الدور','الساكن','الإيجار','المصاريف المشتركة','الإجمالي','الحالة','استلمه','تاريخ التحصيل','التأمين'];
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const csv='\ufeff'+[H,...rows.map(r=>[r.apt,r.floor,r.tenant,r.rent,Math.round(r.share*100)/100,Math.round(r.total*100)/100,ST[r.st],r.recv,r.at,r.dep])].map(a=>a.map(q).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='report-'+cur+'.csv';document.body.appendChild(a);a.click();a.remove();
 }
 function saveUnit(id,data){
   units[id]=data;render();
   if(fdb)setDoc(doc(fdb,'units',id),data).catch(()=>{});
 }
 function saveMonth(items){
-  months[cur]={items};render();
-  if(fdb)setDoc(doc(fdb,'months',cur),{items}).catch(()=>{});
+  months[cur]={...(months[cur]||{}),items};render();persistMonth();
 }
 document.addEventListener('click',e=>{
   const t=e.target;
+  if(t.closest&&t.closest('#bell')){openNotifs();return}
+  if(t.id==='rep'){openReport();return}
+  if(t.id==='rprint'){window.print();return}
+  if(t.id==='rcsv'){csvDown();return}
+  if(t.id==='cok'){confirmPay(open,$('cR').value,$('cN').value.trim());return}
+  if(t.id==='ccancel'){coll=null;renderSheet(open);return}
   const a=t.closest('.apt');if(a){open=a.dataset.id;$('modal').classList.add('on');renderSheet(open);return}
   if(t.id==='smodal'||t.id==='sclose'){$('smodal').classList.remove('on');return}
   if(t.dataset&&t.dataset.send!==undefined){openSend(+t.dataset.send);return}
-  if(t.id==='modal'||t.id==='close'){open=null;$('modal').classList.remove('on');return}
+  if(t.id==='modal'||t.id==='close'){open=null;coll=null;$('modal').classList.remove('on');return}
   if(t.id==='save'){
-    const old=units[open]||{};
-    saveUnit(open,{...old,name:$('fN').value.trim(),phone:$('fP').value.trim(),start:$('fS').value,dueDay:+$('fD').value||1,rent:+$('fR').value||0,notes:$('fT').value.trim(),paid:old.paid||{}});return}
+    const old=units[open]||{},nn=$('fN').value.trim(),hist=[...(old.history||[])];
+    if(old.name&&nn!==old.name)hist.push({name:old.name,phone:old.phone||'',start:old.start||'',end:new Date().toISOString().slice(0,10),deposit:+old.deposit||0});
+    saveUnit(open,{...old,name:nn,phone:$('fP').value.trim(),start:$('fS').value,dueDay:+$('fD').value||1,rent:+$('fR').value||0,deposit:+$('fDp').value||0,lang:$('fL').value,notes:$('fT').value.trim(),paid:old.paid||{},history:hist});return}
   if(t.id==='paid'){
-    const old=units[open]||{},p={...(old.paid||{})};
-    if(p[cur])delete p[cur];else p[cur]=true;
-    saveUnit(open,{...old,paid:p});return}
+    if(((units[open]||{}).paid||{})[cur])cancelPay(open);else{coll=open;renderSheet(open)}
+    return}
   if(t.id==='prev'){cur=shift(cur,-1);render();return}
   if(t.id==='next'){cur=shift(cur,1);render();return}
   if(t.id==='iAdd'){
@@ -267,6 +369,9 @@ document.addEventListener('click',e=>{
   if(t.dataset&&t.dataset.del!==undefined){
     const it=[...(months[cur].items||[])];it.splice(+t.dataset.del,1);saveMonth(it)}
 });
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.classList&&t.classList.contains('lg')){const a=t.parentNode.querySelector('a.wab'),l=itemLink(t.dataset.id,+t.dataset.j,t.value);if(l){a.href=l;a.classList.remove('off')}
+    const u=units[t.dataset.id]||{};units[t.dataset.id]={...u,lang:t.value};if(fdb)setDoc(doc(fdb,'units',t.dataset.id),units[t.dataset.id]).catch(()=>{})}});
 render();
 void 0;
 
@@ -281,18 +386,20 @@ else{
   $('lUp').onclick=()=>go(createUserWithEmailAndPassword);
   $('out').onclick=()=>signOut(auth);
   onAuthStateChanged(auth,async u=>{
-    unsubs.forEach(f=>f());unsubs=[];units={};months={};
+    unsubs.forEach(f=>f());unsubs=[];units={};months={};notifs=[];coll=null;
     if(!u){show('main',false);show('login',true);return}
     show('login',false);
     try{
-      const ref=doc(fdb,'meta','main');let ms=await getDoc(ref),meta,owner=false,ok=false;
+      const ref=doc(fdb,'meta','main');let ms=await getDoc(ref),owner=false,ok=false;
       if(!ms.exists()){meta={ownerUid:u.uid,ownerEmail:u.email,managerEmail:''};await setDoc(ref,meta);owner=ok=true}
       else{meta=ms.data();owner=meta.ownerUid===u.uid;ok=owner||(!!meta.managerEmail&&meta.managerEmail===(u.email||'').toLowerCase())}
       if(!ok){signOut(auth);show('login',true);$('lErr').textContent='الحساب ده مش مصرّح له. اطلب من المسؤول يضيف إيميلك.';return}
-      $('role').textContent=owner?'المسؤول':'صاحب العقار';
-      show('mgr',owner);$('mE').value=meta.managerEmail||'';
-      $('mS').onclick=()=>setDoc(ref,{managerEmail:$('mE').value.trim().toLowerCase()},{merge:true}).then(()=>{$('mS').textContent='تم ✔';setTimeout(()=>$('mS').textContent='حفظ',1500)});
+      $('role').textContent=owner?'المسؤول':'صاحب العقار';me=owner?'mgr':'own';
+      show('mgr',owner);$('mE').value=meta.managerEmail||'';$('mP').value=meta.ownerPhone||'';$('mP2').value=meta.mgrPhone||'';
+      $('mS').onclick=()=>setDoc(ref,{managerEmail:$('mE').value.trim().toLowerCase(),ownerPhone:$('mP').value.trim(),mgrPhone:$('mP2').value.trim()},{merge:true}).then(()=>{$('mS').textContent='تم ✔';setTimeout(()=>$('mS').textContent='حفظ',1500)});
       show('main',true);
+      unsubs.push(onSnapshot(ref,sn=>{if(sn.exists())meta=sn.data()}));
+      unsubs.push(onSnapshot(collection(fdb,'notifs'),sn=>{notifs=sn.docs.map(d=>({id:d.id,...d.data()}));render()}));
       unsubs.push(onSnapshot(collection(fdb,'units'),sn=>{const o={};sn.docs.forEach(d=>o[d.id]=d.data());units=o;render()}));
       unsubs.push(onSnapshot(collection(fdb,'months'),sn=>{const o={};sn.docs.forEach(d=>o[d.id]=d.data());months=o;render()}));
       render();
